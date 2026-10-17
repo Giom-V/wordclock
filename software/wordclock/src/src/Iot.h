@@ -12,6 +12,10 @@
 
 // Maximum length of a single IoT configuration value.
 #define IOT_CONFIG_VALUE_LENGTH 16
+#define IOT_CONFIG_SERVER_LENGTH 64
+#define IOT_CONFIG_USER_LENGTH 64
+#define IOT_CONFIG_PASSWORD_LENGTH 64
+#define IOT_CONFIG_PORT_LENGTH 8
 
 class Iot
 {
@@ -74,6 +78,8 @@ private:
   void setMatrixFromPayload_(String &payload);
   // Scrolls an arbirary text payload on the display.
   void scrollText_(String &text, RgbColor color, int speed, bool rightToLeft);
+  // Tests MQTT connection with provided or saved settings.
+  void handleMqttTest_();
 
   // Whether IoT configuration was initialized.
   bool initialized_ = false;
@@ -162,17 +168,22 @@ private:
   // MQTT server setting.
   iotwebconf::TextParameter mqtt_server_param_;
   // MQTT server value.
-  char mqtt_server_value_[IOT_CONFIG_VALUE_LENGTH];
+  char mqtt_server_value_[IOT_CONFIG_SERVER_LENGTH];
+
+  // MQTT port setting.
+  iotwebconf::NumberParameter mqtt_port_param_;
+  // MQTT port value.
+  char mqtt_port_value_[IOT_CONFIG_PORT_LENGTH];
 
   // MQTT username setting.
   iotwebconf::TextParameter mqtt_user_param_;
   // MQTT username value.
-  char mqtt_user_value_[IOT_CONFIG_VALUE_LENGTH];
+  char mqtt_user_value_[IOT_CONFIG_USER_LENGTH];
 
   // MQTT password setting.
   iotwebconf::PasswordParameter mqtt_password_param_;
   // MQTT password value.
-  char mqtt_password_value_[IOT_CONFIG_VALUE_LENGTH];
+  char mqtt_password_value_[IOT_CONFIG_PASSWORD_LENGTH];
 
   // Config form groups.
   iotwebconf::ParameterGroup time_group_;

@@ -214,3 +214,56 @@ body>div>div:last-child {
   margin-top: -36px;
   float: right;
 }
+
+.mqtt-test-btn {
+  margin: 15px auto 0;
+  background-color: #222;
+  color: #eee;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.85em;
+  width: auto;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: background-color 0.2s;
+}
+
+.mqtt-test-btn:hover {
+  background-color: #333;
+}
+
+.mqtt-test-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mqtt-test-result {
+  margin: 10px auto 0;
+  padding: 10px 14px;
+  font-size: 0.85em;
+  border-radius: 4px;
+  line-height: 1.4;
+  word-break: break-word;
+  text-align: left;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mqtt-test-result.ok {
+  background-color: #14331d;
+  color: #72e492;
+  border: 1px solid #235c34;
+}
+
+.mqtt-test-result.error {
+  background-color: #3d1717;
+  color: #f79292;
+  border: 1px solid #632626;
+}
+
+.mqtt-test-result.pending {
+  background-color: #222;
+  color: #ffb86d;
+  border: 1px solid #444;
+}
