@@ -10,11 +10,11 @@
 #include <IotWebConfESP32HTTPUpdateServer.h>
 #include <RTClib.h>
 
-// Maximum length of a single IoT configuration value.
+// Maximum length of IoT configuration values.
 #define IOT_CONFIG_VALUE_LENGTH 16
-#define IOT_CONFIG_SERVER_LENGTH 64
-#define IOT_CONFIG_USER_LENGTH 64
-#define IOT_CONFIG_PASSWORD_LENGTH 64
+#define IOT_CONFIG_SERVER_LENGTH 33
+#define IOT_CONFIG_USER_LENGTH 33
+#define IOT_CONFIG_PASSWORD_LENGTH 33
 #define IOT_CONFIG_PORT_LENGTH 8
 
 class Iot
