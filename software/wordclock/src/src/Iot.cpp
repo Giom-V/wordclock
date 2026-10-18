@@ -69,7 +69,7 @@ namespace
 #endif
 
   // Custom HTML element will be added at the beginning of the body element.
-  const char CUSTOMHTML_BODY_INNER[] PROGMEM = "<header><div class=\"logoContainer\"><img class=\"logo\" src=\"logo.svg\"/></div></header><aside>Firmware version " AUTO_VERSION " (" HARDWARE_TARGET ")<br><small>Target binary: <code>" RECOMMENDED_FIRMWARE "</code> &bull; <a href=\"https://github.com/t0mg/wordclock\" target=\"_blank\" rel=\"noopener\">GitHub upstream</a></small></aside>\n";
+  const char CUSTOMHTML_BODY_INNER[] PROGMEM = "<header><div class=\"logoContainer\"><img class=\"logo\" src=\"logo.svg\"/></div></header><aside>Firmware version " AUTO_VERSION " (" HARDWARE_TARGET ")<br><small>Target binary: <code>" RECOMMENDED_FIRMWARE "</code> &bull; <a href=\"https://github.com/t0mg/wordclock\" target=\"_blank\" rel=\"noopener\">GitHub</a> &bull; <a href=\"https://github.com/t0mg/wordclock/releases\" target=\"_blank\" rel=\"noopener\">Releases</a></small></aside>\n";
 
   class CustomHtmlFormatProvider : public iotwebconf::HtmlFormatProvider
   {
@@ -645,35 +645,36 @@ void Iot::handleFirmwarePage_()
   page += "<meta name=\"theme-color\" content=\"#121212\" />";
   page += "<link rel=\"icon\" href=\"logo.svg\" type=\"image/svg+xml\" />";
   page += "<style>";
-  page += (char *)style_css_start;
   page += "body { text-align: center; font-family: verdana; background: #121212; color: #fff; margin: 0; padding: 20px; }";
-  page += ".container { display: inline-block; min-width: 280px; max-width: 480px; width: 100%; text-align: left; }";
-  page += ".card { background: #222; border-radius: 8px; padding: 20px; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }";
+  page += ".container { display: inline-block; min-width: 280px; max-width: 480px; width: 100%; text-align: center; margin: 0 auto; }";
+  page += ".logoContainer { display: flex; justify-content: center; align-items: center; background: transparent; margin: 20px auto 30px auto; width: 100%; }";
+  page += ".logo { display: block; width: 140px; max-width: 140px; height: auto; margin: 0 auto; mix-blend-mode: normal; box-shadow: 0px 0px 18px 2px #ffffff7d; border-radius: 4px; }";
+  page += ".card { background: #222; border-radius: 8px; padding: 20px; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: left; }";
   page += ".info-box { background: #1a1a1a; border-left: 4px solid #16A1E7; padding: 12px; margin-bottom: 20px; border-radius: 4px; font-size: 0.9em; }";
   page += ".info-box p { margin: 6px 0; }";
   page += "input[type='file'] { width: 100%; box-sizing: border-box; padding: 10px; background: #333; border: 1px dashed #555; border-radius: 4px; color: #fff; margin-bottom: 15px; cursor: pointer; }";
   page += "input[type='submit'], button.action-btn { width: 100%; border: 0; border-radius: 4px; background-color: #16A1E7; color: #fff; line-height: 2.6rem; font-size: 1.1rem; cursor: pointer; font-weight: bold; }";
   page += "input[type='submit']:hover { background-color: #1180b8; }";
-  page += ".nav-links { margin-top: 25px; text-align: center; font-size: 0.95em; }";
-  page += ".nav-links a { color: #16A1E7; text-decoration: none; margin: 0 10px; }";
+  page += ".nav-links { display: block; clear: both; margin: 30px auto 10px auto; text-align: center; font-size: 0.95em; position: relative; z-index: 10; }";
+  page += ".nav-links a { display: inline-block; padding: 8px 16px; color: #16A1E7; text-decoration: none; }";
   page += ".nav-links a:hover { text-decoration: underline; }";
-  page += "</style></head><body>";
+  page += "</style></head><body class=\"ready\">";
   page += "<div class=\"container\">";
-  page += "<div class=\"logoContainer\" style=\"text-align: center;\"><img class=\"logo\" src=\"logo.svg\" alt=\"WordClock\"/></div>";
+  page += "<div class=\"logoContainer\"><img class=\"logo\" src=\"logo.svg\" alt=\"WordClock\"/></div>";
   page += "<div class=\"card\">";
   page += "<h2 style=\"margin-top:0;text-align:center;\">Firmware Update</h2>";
   page += "<div class=\"info-box\">";
   page += "<p><strong>Current version:</strong> " AUTO_VERSION "</p>";
   page += "<p><strong>Hardware target:</strong> " HARDWARE_TARGET "</p>";
   page += "<p><strong>Expected binary:</strong> <code>" RECOMMENDED_FIRMWARE "</code></p>";
-  page += "<p style=\"font-size:0.85em;color:#aaa;\"><a href=\"https://github.com/t0mg/wordclock\" target=\"_blank\" rel=\"noopener\" style=\"color:#16A1E7;\">GitHub upstream</a> &bull; <a href=\"https://github.com/Giom-V/wordclock/releases\" target=\"_blank\" rel=\"noopener\" style=\"color:#16A1E7;\">GitHub releases</a></p>";
+  page += "<p style=\"font-size:0.85em;color:#aaa;\"><a href=\"https://github.com/t0mg/wordclock\" target=\"_blank\" rel=\"noopener\" style=\"color:#16A1E7;\">GitHub</a> &bull; <a href=\"https://github.com/t0mg/wordclock/releases\" target=\"_blank\" rel=\"noopener\" style=\"color:#16A1E7;\">Releases</a></p>";
   page += "</div>";
   page += "<form method='POST' action='/firmware' enctype='multipart/form-data' onsubmit=\"var b=document.getElementById('subBtn');b.value='Flashing & rebooting...';b.disabled=true;return true;\">";
   page += "<input type='file' name='update' accept='.bin' required>";
   page += "<input id='subBtn' type='submit' value='Upload & Flash'>";
   page += "</form>";
   page += "</div>";
-  page += "<div class=\"nav-links\"><a href='/'>&larr; Back to configuration</a></div>";
+  page += "<p class=\"nav-links\"><a href='/'>&larr; Back to configuration</a></p>";
   page += "</div></body></html>";
 
   web_server_.send(200, "text/html; charset=UTF-8", page);
