@@ -108,18 +108,21 @@ body.ready>div:has(> form)::after {
   width: 80vw;
   max-width: 160px;
   display: block;
-  mix-blend-mode: multiply;
+  mix-blend-mode: normal;
+  box-shadow: 0px 0px 18px 2px #ffffff7d;
+  border-radius: 4px;
 }
 
 .logoContainer {
-  background: white;
+  background: transparent;
   transition: background 3s;
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin: 40px auto;
   padding: 0;
 }
 
-.logoContainer,
 fieldset {
   box-shadow: 0px 0px 15px 1px #ffffff7d;
 }
