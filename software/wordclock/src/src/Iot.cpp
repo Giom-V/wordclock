@@ -723,6 +723,8 @@ bool Iot::connectMQTT_()
 
   // Update availability.
   mqtt_client_.publish(mqtt_topic_prefix_ + "/availability", "online", true /* retained */, 0 /* QoS */);
+  // Publish Home Assistant MQTT Discovery.
+  publishHomeAssistantDiscovery_();
   // Publish initial ON state for the switch.
   toggleDisplay_("ON");
   // Publish current color value.
@@ -993,5 +995,73 @@ void Iot::handleMqttTest_()
     }
 
     web_server_.send(HTTP_OK, "application/json", "{\"status\":\"error\",\"message\":\"" + errMsg + "\"}");
+  }
+}
+
+void Iot::publishHomeAssistantDiscovery_()
+{
+  DLOGLN("Publishing Home Assistant MQTT discovery configs...");
+
+  String thingName = String(iot_web_conf_.getThingName());
+  String deviceId = mqtt_topic_prefix_;
+  String availabilityTopic = mqtt_topic_prefix_ + "/availability";
+
+  // 1. Light entity discovery (homeassistant/light/<deviceId>/config)
+  {
+    JsonDocument doc;
+    doc["name"] = thingName;
+    doc["unique_id"] = deviceId + "_light";
+    doc["schema"] = "basic";
+    doc["state_topic"] = mqtt_topic_prefix_ + "/light/switch";
+    doc["command_topic"] = mqtt_topic_prefix_ + "/light/switch/set";
+    doc["rgb_state_topic"] = mqtt_topic_prefix_ + "/light/color";
+    doc["rgb_command_topic"] = mqtt_topic_prefix_ + "/light/color/set";
+    doc["availability_topic"] = availabilityTopic;
+    doc["payload_available"] = "online";
+    doc["payload_not_available"] = "offline";
+    doc["icon"] = "mdi:clock-digital";
+
+    JsonObject dev = doc["device"].to<JsonObject>();
+    JsonArray ids = dev["identifiers"].to<JsonArray>();
+    ids.add(deviceId);
+    dev["name"] = thingName;
+    dev["model"] = "Wordclock " HARDWARE_TARGET;
+    dev["manufacturer"] = "Giom-V / t0mg";
+    dev["sw_version"] = AUTO_VERSION;
+    dev["configuration_url"] = "http://" + WiFi.localIP().toString();
+
+    String output;
+    serializeJson(doc, output);
+    String topic = "homeassistant/light/" + deviceId + "/config";
+    DLOG("Publishing discovery light to ");
+    DLOGLN(topic);
+    mqtt_client_.publish(topic, output, true /* retained */, 0 /* QoS */);
+  }
+
+  // 2. LDR Sensor entity discovery (homeassistant/sensor/<deviceId>_ldr/config)
+  {
+    JsonDocument doc;
+    doc["name"] = thingName + " Light Sensor";
+    doc["unique_id"] = deviceId + "_ldr";
+    doc["state_topic"] = mqtt_topic_prefix_ + "/sensor/ldr";
+    doc["device_class"] = "illuminance";
+    doc["state_class"] = "measurement";
+    doc["unit_of_measurement"] = "lx";
+    doc["availability_topic"] = availabilityTopic;
+    doc["payload_available"] = "online";
+    doc["payload_not_available"] = "offline";
+    doc["icon"] = "mdi:brightness-6";
+
+    JsonObject dev = doc["device"].to<JsonObject>();
+    JsonArray ids = dev["identifiers"].to<JsonArray>();
+    ids.add(deviceId);
+    dev["name"] = thingName;
+
+    String output;
+    serializeJson(doc, output);
+    String topic = "homeassistant/sensor/" + deviceId + "_ldr/config";
+    DLOG("Publishing discovery sensor to ");
+    DLOGLN(topic);
+    mqtt_client_.publish(topic, output, true /* retained */, 0 /* QoS */);
   }
 }

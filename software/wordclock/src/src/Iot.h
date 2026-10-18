@@ -80,6 +80,8 @@ private:
   void scrollText_(String &text, RgbColor color, int speed, bool rightToLeft);
   // Tests MQTT connection with provided or saved settings.
   void handleMqttTest_();
+  // Publishes Home Assistant MQTT Auto-Discovery configuration payloads.
+  void publishHomeAssistantDiscovery_();
 
   // Whether IoT configuration was initialized.
   bool initialized_ = false;
@@ -93,7 +95,7 @@ private:
   // Server for OTA firmware update.
   HTTPUpdateServer http_updater_;
   // MQTT client.
-  MQTTClient mqtt_client_ = MQTTClient(256);
+  MQTTClient mqtt_client_ = MQTTClient(1024);
   // WiFi client (for MQTT).
   WiFiClient net_;
 
