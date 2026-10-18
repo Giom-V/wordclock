@@ -60,8 +60,16 @@ namespace
   extern const uint8_t style_css_start[] asm("_binary_src_style_css_start");
   extern const uint8_t style_css_end[] asm("_binary_src_style_css_end");
 
+#ifdef NODO
+#define HARDWARE_TARGET "Nodo (ESP32-C3)"
+#define RECOMMENDED_FIRMWARE "firmware_nodo.bin"
+#else
+#define HARDWARE_TARGET "ESP32 Dev (DIY)"
+#define RECOMMENDED_FIRMWARE "firmware_esp32dev.bin"
+#endif
+
   // Custom HTML element will be added at the beginning of the body element.
-  const char CUSTOMHTML_BODY_INNER[] PROGMEM = "<header><div class=\"logoContainer\"><img class=\"logo\" src=\"logo.svg\"/></div></header><aside>Firmware version " AUTO_VERSION "</aside>\n";
+  const char CUSTOMHTML_BODY_INNER[] PROGMEM = "<header><div class=\"logoContainer\"><img class=\"logo\" src=\"logo.svg\"/></div></header><aside>Firmware version " AUTO_VERSION " (" HARDWARE_TARGET ")<br><small>Target binary: <code>" RECOMMENDED_FIRMWARE "</code> &bull; <a href=\"https://github.com/t0mg/wordclock\" target=\"_blank\" rel=\"noopener\">GitHub upstream</a></small></aside>\n";
 
   class CustomHtmlFormatProvider : public iotwebconf::HtmlFormatProvider
   {
@@ -622,6 +630,17 @@ bool Iot::formValidator_(iotwebconf::WebRequestWrapper *webRequestWrapper)
 {
   DLOGLN("Validating form.");
   bool valid = true;
+
+  // IotWebConf requires changing the AP password from the default "password"
+  // to at least 8 characters before Wi-Fi can be established.
+  String apPass = webRequestWrapper->arg(iot_web_conf_.getApPasswordParameter()->getId());
+  String wifiSsid = webRequestWrapper->arg(iot_web_conf_.getWifiSsidParameter()->getId());
+  if (wifiSsid.length() > 0 && (apPass.length() == 0 || apPass.equals(INITIAL_WIFI_AP_PASSWORD) || apPass.length() < 8))
+  {
+    iot_web_conf_.getApPasswordParameter()->errorMessage = "AP password must be changed from default and be at least 8 characters to enable Wi-Fi!";
+    valid = false;
+  }
+
   if (webRequestWrapper->arg(mqtt_enabled_param_.getId()).equals("1"))
   {
     int l = webRequestWrapper->arg(mqtt_server_param_.getId()).length();
