@@ -10,7 +10,18 @@ document.addEventListener(
           const f = document.getElementById("iwcSys");
           f.parentElement.removeChild(f);
           document.querySelector('form').insertBefore(f, document.querySelector('button[type=submit]'));
-       }
+        }
+
+        // Add network status banner
+        const wifiStatusBanner = document.createElement("div");
+        wifiStatusBanner.className = "network-status-banner";
+        const hasSsid = !!document.getElementById("iwcWifiSsid")?.value;
+        if (hasSsid) {
+            wifiStatusBanner.innerHTML = "<span>🟢 Network: Configured</span>";
+        } else {
+            wifiStatusBanner.innerHTML = "<span>🟠 Network: AP Mode (Not configured)</span>";
+        }
+        document.querySelector("aside")?.insertAdjacentElement("afterend", wifiStatusBanner);
 
         // Replace text inputs with desired type
         document.querySelectorAll("[data-type]").forEach((el) => {
@@ -157,6 +168,36 @@ document.addEventListener(
             customSelect.insertAdjacentElement('beforebegin', selectEl);
             customSelect.parentElement.removeChild(customSelect);
         });
+
+        // Validation for AP password requirement
+        const apPwdInput = document.getElementById("iwcApPassword");
+        const wifiSsidInput = document.getElementById("iwcWifiSsid");
+        if (apPwdInput) {
+            const apNotice = document.createElement("small");
+            apNotice.className = "ap-pwd-notice";
+            apNotice.style.display = "block";
+            apNotice.style.marginTop = "4px";
+            apNotice.style.fontSize = "0.8em";
+            apNotice.style.color = "#ffb86d";
+            apNotice.innerText = "ℹ️ Required: min. 8 chars to activate Wi-Fi (cannot be default 'password').";
+            apPwdInput.parentElement.appendChild(apNotice);
+
+            const validateApPassword = () => {
+                const val = apPwdInput.value;
+                const hasWifi = wifiSsidInput && wifiSsidInput.value.trim().length > 0;
+                if (hasWifi && (val.length < 8 || val === "password")) {
+                    apPwdInput.style.borderColor = "#f79292";
+                    apNotice.style.color = "#f79292";
+                    apNotice.innerText = "⚠️ AP password must be changed (min. 8 chars) or Wi-Fi configuration will not be applied!";
+                } else {
+                    apPwdInput.style.borderColor = "";
+                    apNotice.style.color = "#72e492";
+                    apNotice.innerText = "✓ AP password requirements met.";
+                }
+            };
+            apPwdInput.addEventListener("input", validateApPassword);
+            if (wifiSsidInput) wifiSsidInput.addEventListener("input", validateApPassword);
+        }
 
         // Adds a label next to Range inputs.
         document.querySelectorAll("input[type=range]").forEach((inputEl) => {

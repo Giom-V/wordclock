@@ -267,3 +267,10 @@ body>div>div:last-child {
   color: #ffb86d;
   border: 1px solid #444;
 }
+
+.network-status-banner {
+  text-align: center;
+  margin: 10px auto 20px;
+  font-size: 0.9em;
+  font-weight: 500;
+}
