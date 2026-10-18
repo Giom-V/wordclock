@@ -190,6 +190,88 @@ document.addEventListener(
             updateLogoColor();
         }
 
+        // MQTT Test Connection button
+        const mqttPwdInput = document.getElementById("mqtt_password");
+        if (mqttPwdInput) {
+            const container = document.createElement("div");
+            container.className = "mqtt-test-container";
+            container.style.marginTop = "15px";
+            container.style.display = "flex";
+            container.style.flexDirection = "column";
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "mqtt-test-btn";
+            btn.innerText = "⚡ Test MQTT Connection";
+
+            const resultDiv = document.createElement("div");
+            resultDiv.className = "mqtt-test-result";
+            resultDiv.style.display = "none";
+
+            btn.onclick = async function () {
+                const serverEl = document.getElementById("mqtt_server");
+                const portEl = document.getElementById("mqtt_port");
+                const userEl = document.getElementById("mqtt_user");
+                const pwdEl = document.getElementById("mqtt_password");
+
+                const server = serverEl ? serverEl.value.trim() : "";
+                const port = portEl ? portEl.value.trim() : "1883";
+                const user = userEl ? userEl.value.trim() : "";
+                const password = pwdEl ? pwdEl.value : "";
+
+                if (!server) {
+                    resultDiv.style.display = "block";
+                    resultDiv.className = "mqtt-test-result error";
+                    resultDiv.innerText = "✗ Please enter an MQTT server address first.";
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.innerText = "Testing connection...";
+                resultDiv.style.display = "block";
+                resultDiv.className = "mqtt-test-result pending";
+                resultDiv.innerText = "Connecting to " + server + ":" + port + "...";
+
+                try {
+                    const resp = await fetch("/api/mqtt/test", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({ server, port, user, password })
+                    });
+                    const data = await resp.json();
+                    if (data.status === "ok") {
+                        resultDiv.className = "mqtt-test-result ok";
+                        resultDiv.innerText = "✓ " + data.message;
+                    } else {
+                        resultDiv.className = "mqtt-test-result error";
+                        resultDiv.innerText = "✗ " + data.message;
+                    }
+                } catch (err) {
+                    resultDiv.className = "mqtt-test-result error";
+                    resultDiv.innerText = "✗ Request failed: " + err.message;
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "⚡ Test MQTT Connection";
+                }
+            };
+
+            container.appendChild(btn);
+            container.appendChild(resultDiv);
+            mqttPwdInput.parentElement.insertAdjacentElement("afterend", container);
+
+            const applyMqttTestVisibility = () => {
+                const mqttCtrl = document.getElementById("mqtt_enabled");
+                if (mqttCtrl) {
+                    container.style.display = (mqttCtrl.value === "1") ? "flex" : "none";
+                }
+            };
+            const mqttCtrl = document.getElementById("mqtt_enabled");
+            if (mqttCtrl) {
+                mqttCtrl.addEventListener("change", applyMqttTestVisibility);
+                applyMqttTestVisibility();
+            }
+        }
+
         // Reveal the form.
         document.body.classList.add('ready');
     }

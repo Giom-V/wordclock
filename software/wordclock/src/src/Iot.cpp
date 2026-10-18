@@ -19,7 +19,7 @@
 #define INITIAL_WIFI_AP_PASSWORD "password"
 // IoT configuration version. Change this whenever IotWebConf object's
 // configuration structure changes.
-#define CONFIG_VERSION "6"
+#define CONFIG_VERSION "7"
 // Port used by the IotWebConf HTTP server.
 #define WEB_SERVER_PORT 80
 // Default timezone index from Timezones.h (Paris).
@@ -209,9 +209,10 @@ Iot::Iot(Display *display, RTC_DS3231 *rtc)
       mqtt_enabled_param_(
           "Note: when enabled, config updates trigger a reboot", "mqtt_enabled", mqtt_enabled_value_,
           IOT_CONFIG_VALUE_LENGTH, "0", 0, 1, 1, "style='width: 40px;' data-labels='Off|On'"),
-      mqtt_server_param_("MQTT server", "mqtt_server", mqtt_server_value_, IOT_CONFIG_VALUE_LENGTH, nullptr, nullptr, "data-controlledby='mqtt_enabled' data-showon='1'"),
-      mqtt_user_param_("MQTT user", "mqtt_user", mqtt_user_value_, IOT_CONFIG_VALUE_LENGTH, nullptr, nullptr, "data-controlledby='mqtt_enabled' data-showon='1'"),
-      mqtt_password_param_("MQTT password", "mqtt_password", mqtt_password_value_, IOT_CONFIG_VALUE_LENGTH, nullptr, nullptr, "data-controlledby='mqtt_enabled' data-showon='1'"),
+      mqtt_server_param_("MQTT server", "mqtt_server", mqtt_server_value_, IOT_CONFIG_SERVER_LENGTH, nullptr, "e.g. 192.168.1.100", "data-controlledby='mqtt_enabled' data-showon='1'"),
+      mqtt_port_param_("MQTT port", "mqtt_port", mqtt_port_value_, IOT_CONFIG_PORT_LENGTH, "1883", "1883", "data-controlledby='mqtt_enabled' data-showon='1' data-type='number' min='1' max='65535'"),
+      mqtt_user_param_("MQTT user", "mqtt_user", mqtt_user_value_, IOT_CONFIG_USER_LENGTH, nullptr, nullptr, "data-controlledby='mqtt_enabled' data-showon='1'"),
+      mqtt_password_param_("MQTT password", "mqtt_password", mqtt_password_value_, IOT_CONFIG_PASSWORD_LENGTH, nullptr, nullptr, "data-controlledby='mqtt_enabled' data-showon='1'"),
 
       iot_web_conf_(THING_NAME, &dns_server_, &web_server_,
                     INITIAL_WIFI_AP_PASSWORD, CONFIG_VERSION)
@@ -224,6 +225,7 @@ Iot::Iot(Display *display, RTC_DS3231 *rtc)
   this->api_enabled_value_[0] = '\0';
   this->mqtt_enabled_value_[0] = '\0';
   this->mqtt_server_value_[0] = '\0';
+  this->mqtt_port_value_[0] = '\0';
   this->mqtt_user_value_[0] = '\0';
   this->mqtt_password_value_[0] = '\0';
 
@@ -305,6 +307,7 @@ void Iot::setup()
   this->api_enabled_value_[0] = '\0';
   this->mqtt_enabled_value_[0] = '\0';
   this->mqtt_server_value_[0] = '\0';
+  this->mqtt_port_value_[0] = '\0';
   this->mqtt_user_value_[0] = '\0';
   this->mqtt_password_value_[0] = '\0';
 
@@ -331,6 +334,7 @@ void Iot::setup()
 
   mqtt_group_.addItem(&mqtt_enabled_param_);
   mqtt_group_.addItem(&mqtt_server_param_);
+  mqtt_group_.addItem(&mqtt_port_param_);
   mqtt_group_.addItem(&mqtt_user_param_);
   mqtt_group_.addItem(&mqtt_password_param_);
   iot_web_conf_.addParameterGroup(&mqtt_group_);
@@ -437,6 +441,9 @@ void Iot::setup()
     long e = millis();
     DLOGLN(e - s);
   });
+  web_server_.on("/api/mqtt/test", [this]() {
+    handleMqttTest_();
+  });
 
   if (parseBooleanValue(mqtt_enabled_value_))
   {
@@ -444,7 +451,18 @@ void Iot::setup()
     prefix.toLowerCase();
     prefix.replace(" ", "");
     mqtt_topic_prefix_ = prefix;
-    mqtt_client_.begin(mqtt_server_value_, net_);
+
+    String serverStr = String(mqtt_server_value_);
+    serverStr.trim();
+    int port = parseNumberValue(mqtt_port_value_, 1, 65535, 1883);
+    int colonIdx = serverStr.indexOf(':');
+    if (colonIdx > 0)
+    {
+      port = serverStr.substring(colonIdx + 1).toInt();
+      serverStr = serverStr.substring(0, colonIdx);
+    }
+
+    mqtt_client_.begin(serverStr.c_str(), port, net_);
     mqtt_client_.onMessage([this](String &topic, String &payload)
                            { mqttMessageReceived_(topic, payload); });
     String availabilityTopic = mqtt_topic_prefix_ + "/availability";
@@ -612,6 +630,16 @@ bool Iot::formValidator_(iotwebconf::WebRequestWrapper *webRequestWrapper)
       mqtt_server_param_.errorMessage = "Please provide at least 3 characters!";
       valid = false;
     }
+    String portStr = webRequestWrapper->arg(mqtt_port_param_.getId());
+    if (portStr.length() > 0)
+    {
+      int port = portStr.toInt();
+      if (port <= 0 || port > 65535)
+      {
+        mqtt_port_param_.errorMessage = "Port must be between 1 and 65535!";
+        valid = false;
+      }
+    }
   }
   return valid;
 }
@@ -658,6 +686,12 @@ bool Iot::connectMQTT_()
   if (!connectMqttOptions_())
   {
     last_mqtt_connection_attempt_ = now;
+    lwmqtt_return_code_t rc = mqtt_client_.returnCode();
+    lwmqtt_err_t err = mqtt_client_.lastError();
+    DLOG("MQTT connect failed! returnCode=");
+    DLOG((int)rc);
+    DLOG(" lastError=");
+    DLOGLN((int)err);
     return false;
   }
   DLOGLN("Connected!");
@@ -825,5 +859,120 @@ void Iot::scrollText_(String &text, RgbColor color, int speed, bool rightToLeft)
   } else {
     DLOG("Text length out of bounds");
     DLOGLN(text.length());
+  }
+}
+
+void Iot::handleMqttTest_()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    web_server_.send(HTTP_OK, "application/json", "{\"status\":\"error\",\"message\":\"Clock is not connected to WiFi. Please connect to your WiFi network first.\"}");
+    return;
+  }
+
+  String server = web_server_.hasArg("server") ? web_server_.arg("server") : String(mqtt_server_value_);
+  server.trim();
+  if (server.length() == 0)
+  {
+    web_server_.send(HTTP_OK, "application/json", "{\"status\":\"error\",\"message\":\"Please specify an MQTT server address.\"}");
+    return;
+  }
+
+  int port = 1883;
+  if (web_server_.hasArg("port") && web_server_.arg("port").length() > 0)
+  {
+    port = web_server_.arg("port").toInt();
+  }
+  else if (mqtt_port_value_[0] != '\0')
+  {
+    port = atoi(mqtt_port_value_);
+  }
+  if (port <= 0 || port > 65535)
+  {
+    port = 1883;
+  }
+
+  int colonIdx = server.indexOf(':');
+  if (colonIdx > 0)
+  {
+    port = server.substring(colonIdx + 1).toInt();
+    server = server.substring(0, colonIdx);
+  }
+
+  String user = web_server_.hasArg("user") ? web_server_.arg("user") : String(mqtt_user_value_);
+  user.trim();
+
+  String password = web_server_.hasArg("password") && web_server_.arg("password").length() > 0
+                        ? web_server_.arg("password")
+                        : String(mqtt_password_value_);
+
+  DLOG("Testing MQTT connection to ");
+  DLOG(server);
+  DLOG(":");
+  DLOGLN(port);
+
+  WiFiClient testNet;
+  testNet.setTimeout(3);
+  MQTTClient testMqtt(256);
+  testMqtt.setTimeout(3000);
+  testMqtt.begin(server.c_str(), port, testNet);
+
+  String testClientId = String(iot_web_conf_.getThingName()) + "-test-" + String(random(1000, 9999));
+  bool connected = false;
+  if (password.length() > 0)
+  {
+    connected = testMqtt.connect(testClientId.c_str(), user.c_str(), password.c_str());
+  }
+  else if (user.length() > 0)
+  {
+    connected = testMqtt.connect(testClientId.c_str(), user.c_str());
+  }
+  else
+  {
+    connected = testMqtt.connect(testClientId.c_str());
+  }
+
+  if (connected)
+  {
+    testMqtt.disconnect();
+    String msg = "Successfully connected to MQTT broker (" + server + ":" + String(port) + ")!";
+    web_server_.send(HTTP_OK, "application/json", "{\"status\":\"ok\",\"message\":\"" + msg + "\"}");
+  }
+  else
+  {
+    lwmqtt_return_code_t rc = testMqtt.returnCode();
+    lwmqtt_err_t err = testMqtt.lastError();
+    String errMsg = "Connection failed: ";
+
+    if (rc == LWMQTT_BAD_USERNAME_OR_PASSWORD)
+    {
+      errMsg += "Bad username or password (rc=4). Check Mosquitto user credentials in Home Assistant.";
+    }
+    else if (rc == LWMQTT_NOT_AUTHORIZED)
+    {
+      errMsg += "Not authorized (rc=5, access denied by broker ACL).";
+    }
+    else if (rc == LWMQTT_SERVER_UNAVAILABLE)
+    {
+      errMsg += "Server unavailable (rc=3, broker not ready).";
+    }
+    else if (rc == LWMQTT_IDENTIFIER_REJECTED)
+    {
+      errMsg += "Client identifier rejected (rc=2).";
+    }
+    else if (rc == LWMQTT_UNACCEPTABLE_PROTOCOL)
+    {
+      errMsg += "Unacceptable protocol version (rc=1).";
+    }
+    else if (err == LWMQTT_NETWORK_FAILED_CONNECT || err == LWMQTT_NETWORK_TIMEOUT)
+    {
+      errMsg += "Cannot reach broker at " + server + ":" + String(port) + " (timeout/refused). Check IP address, port, and UniFi firewall rules between IoT and Server VLANs.";
+    }
+    else
+    {
+      errMsg += "Error code: rc=" + String((int)rc) + ", err=" + String((int)err);
+    }
+
+    web_server_.send(HTTP_OK, "application/json", "{\"status\":\"error\",\"message\":\"" + errMsg + "\"}");
   }
 }
