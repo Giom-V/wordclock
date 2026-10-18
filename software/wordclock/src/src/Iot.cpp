@@ -655,8 +655,8 @@ void Iot::handleFirmwarePage_()
   page += "input[type='file'] { width: 100%; box-sizing: border-box; padding: 10px; background: #333; border: 1px dashed #555; border-radius: 4px; color: #fff; margin-bottom: 15px; cursor: pointer; }";
   page += "input[type='submit'], button.action-btn { width: 100%; border: 0; border-radius: 4px; background-color: #16A1E7; color: #fff; line-height: 2.6rem; font-size: 1.1rem; cursor: pointer; font-weight: bold; }";
   page += "input[type='submit']:hover { background-color: #1180b8; }";
-  page += ".nav-links { margin-top: 25px; text-align: center; font-size: 0.95em; }";
-  page += ".nav-links a { color: #16A1E7; text-decoration: none; margin: 0 10px; }";
+  page += ".nav-links { display: block; clear: both; margin: 30px auto 10px auto; text-align: center; font-size: 0.95em; position: relative; z-index: 10; }";
+  page += ".nav-links a { display: inline-block; padding: 8px 16px; color: #16A1E7; text-decoration: none; }";
   page += ".nav-links a:hover { text-decoration: underline; }";
   page += "</style></head><body class=\"ready\">";
   page += "<div class=\"container\">";
@@ -674,7 +674,7 @@ void Iot::handleFirmwarePage_()
   page += "<input id='subBtn' type='submit' value='Upload & Flash'>";
   page += "</form>";
   page += "</div>";
-  page += "<div class=\"nav-links\"><a href='/'>&larr; Back to configuration</a></div>";
+  page += "<p class=\"nav-links\"><a href='/'>&larr; Back to configuration</a></p>";
   page += "</div></body></html>";
 
   web_server_.send(200, "text/html; charset=UTF-8", page);
