@@ -62,6 +62,8 @@ private:
 
   // Handles HTTP requests to web server's "/" path.
   void handleHttpToRoot_();
+  // Handles HTTP GET to /firmware to serve custom update UI.
+  void handleFirmwarePage_();
   // Handles form verification before saving.
   bool formValidator_(iotwebconf::WebRequestWrapper* webRequestWrapper);
   // Handles configuration changes.

@@ -368,6 +368,7 @@ void Iot::setup()
   updateClockFromParams_();
 
   web_server_.on("/", [this]  { handleHttpToRoot_(); });
+  web_server_.on("/firmware", HTTP_GET, [this] { handleFirmwarePage_(); });
   web_server_.onNotFound([this] { iot_web_conf_.handleNotFound(); });
   web_server_.on("/logo.svg", [this]() {
     web_server_.send(HTTP_OK, "image/svg+xml", (char *)logo_svg_start);
@@ -624,6 +625,58 @@ void Iot::handleHttpToRoot_()
 
   clearTransientParams_();
   iot_web_conf_.handleConfig();
+}
+
+void Iot::handleFirmwarePage_()
+{
+  if (iot_web_conf_.getState() == iotwebconf::OnLine)
+  {
+    const char *apPassword = iot_web_conf_.getApPasswordParameter()->valueBuffer;
+    if (apPassword != nullptr && apPassword[0] != '\0' && !web_server_.authenticate(IOTWEBCONF_ADMIN_USER_NAME, apPassword))
+    {
+      web_server_.requestAuthentication();
+      return;
+    }
+  }
+
+  String page = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">";
+  page += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
+  page += "<title>WordClock Firmware Update</title>";
+  page += "<meta name=\"theme-color\" content=\"#121212\" />";
+  page += "<link rel=\"icon\" href=\"logo.svg\" type=\"image/svg+xml\" />";
+  page += "<style>";
+  page += (char *)style_css_start;
+  page += "body { text-align: center; font-family: verdana; background: #121212; color: #fff; margin: 0; padding: 20px; }";
+  page += ".container { display: inline-block; min-width: 280px; max-width: 480px; width: 100%; text-align: left; }";
+  page += ".card { background: #222; border-radius: 8px; padding: 20px; margin-top: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }";
+  page += ".info-box { background: #1a1a1a; border-left: 4px solid #16A1E7; padding: 12px; margin-bottom: 20px; border-radius: 4px; font-size: 0.9em; }";
+  page += ".info-box p { margin: 6px 0; }";
+  page += "input[type='file'] { width: 100%; box-sizing: border-box; padding: 10px; background: #333; border: 1px dashed #555; border-radius: 4px; color: #fff; margin-bottom: 15px; cursor: pointer; }";
+  page += "input[type='submit'], button.action-btn { width: 100%; border: 0; border-radius: 4px; background-color: #16A1E7; color: #fff; line-height: 2.6rem; font-size: 1.1rem; cursor: pointer; font-weight: bold; }";
+  page += "input[type='submit']:hover { background-color: #1180b8; }";
+  page += ".nav-links { margin-top: 25px; text-align: center; font-size: 0.95em; }";
+  page += ".nav-links a { color: #16A1E7; text-decoration: none; margin: 0 10px; }";
+  page += ".nav-links a:hover { text-decoration: underline; }";
+  page += "</style></head><body>";
+  page += "<div class=\"container\">";
+  page += "<div class=\"logoContainer\" style=\"text-align: center;\"><img class=\"logo\" src=\"logo.svg\" alt=\"WordClock\"/></div>";
+  page += "<div class=\"card\">";
+  page += "<h2 style=\"margin-top:0;text-align:center;\">Firmware Update</h2>";
+  page += "<div class=\"info-box\">";
+  page += "<p><strong>Current version:</strong> " AUTO_VERSION "</p>";
+  page += "<p><strong>Hardware target:</strong> " HARDWARE_TARGET "</p>";
+  page += "<p><strong>Expected binary:</strong> <code>" RECOMMENDED_FIRMWARE "</code></p>";
+  page += "<p style=\"font-size:0.85em;color:#aaa;\"><a href=\"https://github.com/t0mg/wordclock\" target=\"_blank\" rel=\"noopener\" style=\"color:#16A1E7;\">GitHub upstream</a> &bull; <a href=\"https://github.com/Giom-V/wordclock/releases\" target=\"_blank\" rel=\"noopener\" style=\"color:#16A1E7;\">GitHub releases</a></p>";
+  page += "</div>";
+  page += "<form method='POST' action='/firmware' enctype='multipart/form-data' onsubmit=\"var b=document.getElementById('subBtn');b.value='Flashing & rebooting...';b.disabled=true;return true;\">";
+  page += "<input type='file' name='update' accept='.bin' required>";
+  page += "<input id='subBtn' type='submit' value='Upload & Flash'>";
+  page += "</form>";
+  page += "</div>";
+  page += "<div class=\"nav-links\"><a href='/'>&larr; Back to configuration</a></div>";
+  page += "</div></body></html>";
+
+  web_server_.send(200, "text/html; charset=UTF-8", page);
 }
 
 bool Iot::formValidator_(iotwebconf::WebRequestWrapper *webRequestWrapper)
